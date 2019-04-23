@@ -1,0 +1,186 @@
+Solucion Practica Quiz
+
+PART I
+
+Create a tablespace with name 'quiz_manana' and three datafiles. Each datafile of 30Mb.
+
+create tablespace quiz_manana datafile 'QUIZ1' size 30M
+create tablespace quiz_manana2 datafile 'QUIZ2' size 30M
+create tablespace quiz_manana3 datafile 'QUIZ3' size 30M
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+2. Create a profile with idle time of 15 minutes, the name of the profile should be 'estudiante_quiz'
+
+alter session set "_ORACLE_SCRIPT"=true;
+
+--- Creamos el Usuario Estudiante Quiz ---
+CREATE USER estudiante_quiz
+IDENTIFIED BY estudiante_quiz
+QUOTA UNLIMITED ON quiz_manana
+PASSWORD expire
+ACCOUNT unlock
+PROFILE estudiante_quiz
+
+
+--- Creamos el perfil estudiante quiz
+
+CREATE PROFILE estudiante_quiz LIMIT
+CPU_PER_SESSION unlimited
+SESSIONS_PER_USER 3 
+CONNECT_TIME 60
+IDLE_TIME 15
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+3. Create an user named "carlos_2" with password "carlos_2". 
+	- The user should be able to connect
+	- The user should has the profile "estudiante_quiz"
+	- The user should be associated to the tablespace "quiz_manana"
+	- The user should be able to create tables WITHOUT USING THE DBA ROLE. 
+
+
+CREATE USER carlos_2
+IDENTIFIED BY carlos_2
+DEFAULT TABLESPACE quiz_manana 
+QUOTA Umlimited ON quiz_manana
+PASSWORD expire
+ACCOUNT unlock
+PROFILE estudiante_quiz
+
+--- Agregamos el perfil estudiante_quiz al usuario ---
+ALTER USER carlos_2 PROFILE estudiante_quiz 
+
+---Creamos el rol QUIZ---
+CREATE ROLE QUIZ
+
+---Asignamos los privilegios al rol QUIZ
+GRANT  CREATE SESSION, CREATE ANY TABLE, SELECT ANY TABLE , DROP ANY TABLE, INSERT ANY TABLE TO QUIZ 
+
+---Ahora asignamos el rol QUIZ al Usuario 
+GRANT QUIZ to carlos_2
+
+
+
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+4. Create an user named "user2" with password "user2"
+	- The user should be able to connect
+	- The user should has the profile "estudiante_quiz"
+	- The user should be associated to the tablespace "quiz_manana"
+	- The user shouldn't be able to create tables.
+
+CREATE USER user2
+IDENTIFIED BY user2
+DEFAULT TABLESPACE quiz_manana 
+QUOTA UMLIMITED ON quiz_manana
+PASSWORD expire
+ACCOUNT unlock
+PROFILE estudiante_quiz
+
+
+--- Agregamos el perfil estudiante_quiz al usuario ---
+ALTER USER user2 PROFILE estudiante_quiz
+
+--- CREAMOS EL ROL -----
+CREATE ROLE QUIZ2
+
+---ASIGNAMOS LOS PRIVILEGIOS AL ROL QUIZ2
+GRANT CREATE SESSION, SELECT ANY TABLE TO QUIZ2
+
+---AHORA ASIGNAMOS EL ROL AL USUARIO----
+GRANT QUIZ2 TO user2
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+PART II
+
+1. With the carlos_2 create the next table (DON'T CHANGE THE NAME OF THE TABLE NOR COLUMNS: 
+
+create table icfes (
+	tipo_documento 	varchar2(255),
+	nacionalidad		varchar2(255),
+	genero		        varchar2(255),
+	fecha_nacimiento	date,
+	periodo					varchar2(255),
+	consecutivo			varchar2(255),
+	departamento_residencia	varchar2(255),
+	codigo_departamento_residencia	integer,
+	municipio_residencia		varchar2(255),
+	codigo_municipio_residencia	varchar2(255),
+	estrato					varchar2(255),
+	educacion_padre	varchar2(255),
+	educacion_madre	varchar2(255),
+	tiene_internet	varchar2(255),
+	tiene_tv				varchar2(255),
+	tiene_lavadora	varchar2(255),
+	tiene_horno_micro_o_gas	varchar2(255),
+	tiene_automovil	varchar2(255),
+	tiene_motocicleta	varchar2(255),
+	tiene_consola_videojuegos	varchar2(255),
+	colegio_codigo_icfes	varchar2(255),
+	colegio_codigo_dane		varchar2(255),
+	colegio_nombre				varchar2(255),
+	puntaje_lectura_critica	integer,
+	puntaje_matematicas		integer,
+	puntaje_ciencias_naturales	integer,
+	puntaje_sociales			integer,
+	puntaje_ingles				integer,
+	desempeno_ingles			varchar2(255),
+	puntaje_global				integer
+);
+
+Nos Logueamos con el usuario carlos_2
+username:carlos_2
+password:carlos_2
+
+y Creamos la tabla que nos pidieron e importamos los datos:
+
+Al momento de importar los datos nos arroja un error 
+ORA-02396: exceeded maximum idle time, please connect again, este error se debe a que le asignamos un idle time al perfil estudiante_quiz por eso debemos
+ejecutar este comando para insertar los datos:
+
+ALTER PROFILE estudiante_quiz LIMIT IDLE_TIME UNLIMITED
+
+
+
+2. Import this data: https://www.datos.gov.co/api/views/w42r-j8f9/rows.csv?accessType=DOWNLOAD (La Guarde en la carpeta)
+
+3. Give permission to view table "icfes" of the user2 (Do selects)
+GRANT SELECT ON carlos_2.icfes to user2
+
+Nos logueamos con el nombre de usuario y contraseña del usuario2:
+login:user2
+contraseña:user2 
+
+Al loguearnos ejecutamos la consulta para probar el privilegio asignado al user2 de ver la tabla icfes:
+
+SELECT * FROM carlos_2.icfes
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+PART III
+
+Queries: 
+
+1. SHOW THE GENRE, DATE OF BIRTH, SEQUENCE (CONSECUTIVO), MUNICIPIO, GLOBAL SCORE (PUNTAJE GLOBAL) OF THE OLDEST STUDENT
+	SELECT GENERO, FECHA_NACIMIENTO, CONSECUTIVO, MUNICIPIO_RESIDENCIA, PUNTAJE_GLOBAL FROM ICFES
+	WHERE FECHA_NACIMIENTO='25-JAN-57';
+
+
+2. SHOW THE GENRE, DATE OF BIRTH, SEQUENCE (CONSECUTIVO), MUNICIPIO, GLOBAL SCORE (PUNTAJE GLOBAL) OF THE STUDENTS WHICH HAVE A B1 IN DESEMPEÑO OF ENGLISH
+	SELECT GENERO, FECHA_NACIMIENTO, CONSECUTIVO, MUNICIPIO_RESIDENCIA, PUNTAJE_GLOBAL, DESEMPENO_INGLES FROM ICFES
+	WHERE DESEMPENO_INGLES='B1';
+
+3. COUNT THE NUMBER COLEGIO_NOMBRE WITHOUT REPETITION (UNIQUE VALUES) OF THE STUDENTS
+	SELECT COUNT(COLEGIO_NOMBRE )FROM ICFES
+	
+
+4. COUNT THE NUMBER OF STUDENTS WHICH ARE LOCATED IN PASTO
+	SELECT COUNT(MUNICIPIO_RESIDENCIA)FROM ICFES 
+	WHERE MUNICIPIO_RESIDENCIA ='PASTO';
+
+
+
+
